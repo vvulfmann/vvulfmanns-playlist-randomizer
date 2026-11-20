@@ -10,7 +10,8 @@ package listing) come from its section here.
 - **No more hitch when a randomized sound plays.** Foundry used to stutter for a moment every time a randomized
   sound started or finished, because each one redrew the entire Playlists sidebar for every connected player. Now
   only the row for that sound changes, so play stays smooth even in worlds with a large playlist library.
-- With several players connected, a randomized sound finishing no longer sends the same update once per player.
+- With several players connected, a randomized sound finishing now sends far fewer repeated updates: once one
+  player's update arrives, the others stop sending theirs.
 
 ### Changed
 
