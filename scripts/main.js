@@ -5,7 +5,7 @@
  */
 import {RandomizerDirectory} from "./directory.mjs";
 import {onPreCreatePlaylistSound, onPreUpdatePlaylist, onPreUpdatePlaylistSound} from "./guards.mjs";
-import {frequencyOf, hasFrequency} from "./config.mjs";
+import {flagPath, frequencyOf, hasFrequency} from "./config.mjs";
 import {RandomizerPlaylist} from "./playlist.mjs";
 import {Scheduler} from "./scheduler.mjs";
 import {registerSettings} from "./settings.mjs";
@@ -33,4 +33,13 @@ Hooks.once("init", () => {
   Hooks.on("renderPlaylistSoundConfig", onRenderPlaylistSoundConfig);
   Hooks.on("renderSettingsConfig", onRenderSettingsConfig);
   scheduler.registerHooks();
+
+  // Gaps start and end without a sidebar render (QUIET_UPDATE), so patch the rows on every client instead.
+  const touchesResting = change => foundry.utils.hasProperty(change ?? {}, flagPath("resting"));
+  Hooks.on("updatePlaylistSound", (sound, changed) => {
+    if ( touchesResting(changed) ) ui.playlists?.refreshSounds?.();
+  });
+  Hooks.on("updatePlaylist", (playlist, changed) => {
+    if ( changed.sounds?.some(touchesResting) ) ui.playlists?.refreshSounds?.();
+  });
 });

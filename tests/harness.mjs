@@ -186,13 +186,14 @@ export class PlaylistSound {
 
   updateSource(changes) { deepMerge(this, expandObject(changes)); }
 
-  /** Direct update: fires the sound's own hooks. */
-  update(data) {
+  /** Direct update: fires the sound's own hooks. Core re-renders the Playlists sidebar unless options.render is false. */
+  update(data, options={}) {
     const changed = expandObject(data);
-    Hooks.call("preUpdatePlaylistSound", this, changed, {}, "user");
+    Hooks.call("preUpdatePlaylistSound", this, changed, options, "user");
     this._apply(changed);
     this.parent.prepareDerivedData();
-    Hooks.callAll("updatePlaylistSound", this, changed, {}, "user");
+    recordUpdate(options);
+    Hooks.callAll("updatePlaylistSound", this, changed, options, "user");
     this.sync();
     return Promise.resolve(this);
   }
@@ -240,6 +241,20 @@ export class PlaylistSound {
   get audible() {
     return !!(this.endTimer || this.audioLooping);
   }
+}
+
+/**
+ * Counts the document updates sent, and how many of them would re-render the Playlists sidebar
+ * (core renders unless the update's options say render: false).
+ */
+export const updates = {
+  sent: 0,
+  rendered: 0,
+  reset() { this.sent = 0; this.rendered = 0; }
+};
+function recordUpdate(options) {
+  updates.sent++;
+  if ( options.render !== false ) updates.rendered++;
 }
 
 /** Core v14 Playlist behaviour. */
@@ -358,14 +373,15 @@ export class Playlist {
   }
 
   /** Update through the playlist: only the playlist's hooks fire. */
-  update(data) {
+  update(data, options={}) {
     const changed = expandObject(data);
-    Hooks.call("preUpdatePlaylist", this, changed, {}, "user");
+    Hooks.call("preUpdatePlaylist", this, changed, options, "user");
     const {sounds, playing, ...rest} = changed;
     deepMerge(this, rest);
     for ( const s of sounds ?? [] ) this.sounds.get(s._id)?._apply(s);
     this.prepareDerivedData();
-    Hooks.callAll("updatePlaylist", this, changed, {}, "user");
+    recordUpdate(options);
+    Hooks.callAll("updatePlaylist", this, changed, options, "user");
     if ( sounds || ("mode" in changed) ) this.sounds.forEach(s => s.sync());
     return Promise.resolve(this);
   }
@@ -423,6 +439,7 @@ export class El {
     for ( const e of els ) e.parent = this.parent;
   }
   setAttribute(k, v) { this.attrs[k] = String(v); }
+  removeAttribute(k) { delete this.attrs[k]; }
   hasAttribute(k) { return k in this.attrs; }
   cloneNode(deep=false) {
     const copy = new El(this.tagName, {classes: [...this.classList], dataset: this.dataset, attrs: this.attrs});
@@ -542,6 +559,7 @@ export function installGlobals() {
   globalThis.foundry = {utils: {getProperty, hasProperty, setProperty, expandObject}, applications: {fields},
     data: {fields: {DataField, NumberField, StringField}}};
   globalThis.Hooks = Hooks;
+  globalThis.ui = {playlists: null};
   globalThis.document = {createElement: tag => new El(tag)};
   globalThis.CONFIG = {Playlist: {documentClass: Playlist}, PlaylistSound: {documentClass: PlaylistSound},
     ui: {playlists: PlaylistDirectory}};

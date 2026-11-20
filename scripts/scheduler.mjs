@@ -1,4 +1,4 @@
-import {flagPath, isRandomized, isWaiting, randomDelayMs} from "./config.mjs";
+import {QUIET_UPDATE, flagPath, isRandomized, isWaiting, randomDelayMs} from "./config.mjs";
 
 /** Has a change touched one of our flags? Works for nested and dotted-key change data. */
 const touches = (change, key) => foundry.utils.hasProperty(change ?? {}, flagPath(key));
@@ -143,7 +143,7 @@ export class Scheduler {
     if ( !this.active ) return;
     const sound = game.playlists.get(playlistId)?.sounds.get(soundId);
     if ( !isWaiting(sound) || !isRandomized(sound) ) return;
-    return sound.update({[flagPath("resting")]: false});
+    return sound.update({[flagPath("resting")]: false}, QUIET_UPDATE);
   }
 
   /* -------------------------------------------- */

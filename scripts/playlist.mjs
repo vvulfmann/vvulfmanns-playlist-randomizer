@@ -1,4 +1,4 @@
-import {flagPath, isRandomized} from "./config.mjs";
+import {QUIET_UPDATE, flagPath, isRandomized, isResting} from "./config.mjs";
 
 /**
  * Extends the configured Playlist document class.
@@ -15,9 +15,11 @@ export const RandomizerPlaylist = Base => class RandomizerPlaylist extends Base 
   /** @inheritDoc */
   async _onSoundEnd(sound) {
     if ( !sound.playing || !isRandomized(sound) ) return super._onSoundEnd(sound);
-    // Every owner's client reports the end, so this may arrive more than once. The update is idempotent.
+    // Every owner's client reports the end. Once another client's report has arrived here, there's nothing to send.
+    if ( isResting(sound) ) return this;
     // Clear any resume offset left by a pause, as core does on a natural end, so the next play starts from 0.
-    return this.update({sounds: [{_id: sound.id, pausedTime: null, [flagPath("resting")]: true}]});
+    // Nothing core draws changes (the sound stays playing), so skip the full sidebar re-render; see QUIET_UPDATE.
+    return this.update({sounds: [{_id: sound.id, pausedTime: null, [flagPath("resting")]: true}]}, QUIET_UPDATE);
   }
 
   /**
