@@ -3,7 +3,7 @@
  * Run with: npm test
  */
 import assert from "node:assert/strict";
-import {El, Hooks, MODES, Playlist, PlaylistDirectory, PlaylistSound, clock, installGlobals} from "./harness.mjs";
+import {El, Hooks, MODES, Playlist, PlaylistDirectory, PlaylistSound, clock, installGlobals, updates} from "./harness.mjs";
 
 installGlobals();
 Math.random = () => 0.5;   // deterministic gaps: Often = 22.5 s, Sometimes = 45 s, Seldom = 90 s
@@ -697,6 +697,51 @@ test("sidebar: a dice sits beside every repeat button, lit only on randomized so
   await click(rows[3]);
   await click(rows[3]);
   assert.equal(flag(s("slam"), "randomize"), false, "clicking the lit dice makes a one-shot");
+});
+
+test("performance: starting and ending a gap never re-renders the sidebar, and duplicate ends send nothing", async () => {
+  const {playlist, s} = world();
+  const raven = s("raven");
+  await playlist.playSound(raven);
+  updates.reset();
+  for ( let i = 0; i < 3; i++ ) {
+    clock.advance(SOUND_LEN);          // the play ends: the gap starts
+    await playlist._onSoundEnd(raven); // a second owner's report of the same end
+    assert.equal(resting(raven), true);
+    clock.advance(OFTEN);              // the gap ends: the sound plays
+    assert.equal(raven.audible, true);
+  }
+  assert.equal(updates.sent, 6, "one update per gap start and one per gap end, none for the duplicate reports");
+  assert.equal(updates.rendered, 0, "none of them re-renders the sidebar");
+});
+
+test("sidebar: rows follow a gap starting and ending without a re-render", async () => {
+  const {playlist, s} = world();
+  const raven = s("raven");
+  const row = new El("li", {classes: ["sound"], dataset: {playlistId: "pl1", soundId: "raven"}, children: [
+    new El("button", {dataset: {action: "soundPause"}})
+  ]});
+  const stop = new El("li", {classes: ["sound"], dataset: {playlistId: "pl1", soundId: "slam"}, children: [
+    new El("button", {dataset: {action: "soundPause"}, attrs: {disabled: ""}})
+  ]});
+  const app = new CONFIG.ui.playlists();
+  app.element = new El("section", {children: [row, stop]});
+  globalThis.ui.playlists = app;
+  try {
+    await playlist.playSound(raven);
+    app._replaceHTML({}, app.element, {});
+    const pause = row.querySelector('[data-action="soundPause"]');
+    assert.equal(row.classList.has("vpr-resting"), false);
+    clock.advance(SOUND_LEN);
+    assert.ok(row.classList.has("vpr-resting"), "marked when the gap starts");
+    assert.ok(pause.hasAttribute("disabled"));
+    clock.advance(OFTEN);
+    assert.equal(row.classList.has("vpr-resting"), false, "unmarked when the gap ends");
+    assert.equal(pause.hasAttribute("disabled"), false, "pause works again");
+    assert.ok(stop.querySelector('[data-action="soundPause"]').hasAttribute("disabled"), "core's own disabled state is left alone");
+  } finally {
+    globalThis.ui.playlists = null;
+  }
 });
 
 /* ---------------------------------------- */
