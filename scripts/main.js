@@ -34,12 +34,15 @@ Hooks.once("init", () => {
   Hooks.on("renderSettingsConfig", onRenderSettingsConfig);
   scheduler.registerHooks();
 
-  // Gaps start and end without a sidebar render (quietUpdate), so patch the rows on every client instead.
+  // Gaps start and end without a sidebar render (quietUpdate), so patch those sounds' rows on every client instead.
+  // Updates that do render are decorated in RandomizerDirectory#_replaceHTML.
   const touchesResting = change => foundry.utils.hasProperty(change ?? {}, flagPath("resting"));
-  Hooks.on("updatePlaylistSound", (sound, changed) => {
-    if ( touchesResting(changed) ) ui.playlists?.refreshSounds?.();
+  Hooks.on("updatePlaylistSound", (sound, changed, options) => {
+    if ( (options?.render === false) && touchesResting(changed) ) ui.playlists?.refreshSounds?.([sound.id]);
   });
-  Hooks.on("updatePlaylist", (playlist, changed) => {
-    if ( changed.sounds?.some(touchesResting) ) ui.playlists?.refreshSounds?.();
+  Hooks.on("updatePlaylist", (playlist, changed, options) => {
+    if ( options?.render !== false ) return;
+    const ids = (changed.sounds ?? []).filter(touchesResting).map(c => c._id);
+    if ( ids.length ) ui.playlists?.refreshSounds?.(ids);
   });
 });

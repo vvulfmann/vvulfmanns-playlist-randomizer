@@ -46,10 +46,11 @@ export const RandomizerDirectory = Base => class RandomizerDirectory extends Bas
   /**
    * Bring the rendered rows in line with each sound's gap state, without re-rendering. Called after the quiet
    * updates that start and end a gap (see quietUpdate), which core doesn't re-render for.
+   * @param {string[]} [soundIds]   Only these sounds' rows, in the directory and Currently Playing. Default: all.
    */
-  refreshSounds() {
+  refreshSounds(soundIds) {
     if ( !this.element ) return;
-    decorateSounds(this.element);
+    decorateSounds(this.element, soundIds);
     resetRestingTimers(this.element);
   }
 };
@@ -70,9 +71,12 @@ export function resetRestingTimers(element) {
  * Add the dice to each sound row and mark resting rows.
  * Covers the directory list and core's Currently Playing panel, which both render .sound rows.
  * @param {HTMLElement} element
+ * @param {string[]} [soundIds]   Only these sounds' rows. Default: every row.
  */
-export function decorateSounds(element) {
+export function decorateSounds(element, soundIds) {
+  const only = soundIds ? new Set(soundIds) : null;
   for ( const li of element.querySelectorAll(".sound[data-sound-id]") ) {
+    if ( only && !only.has(li.dataset.soundId) ) continue;
     const sound = game.playlists.get(li.dataset.playlistId)?.sounds.get(li.dataset.soundId);
     if ( !sound ) continue;
     const waiting = isWaiting(sound);
