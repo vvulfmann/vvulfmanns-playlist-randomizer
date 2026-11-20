@@ -34,7 +34,7 @@ Hooks.once("init", () => {
   Hooks.on("renderSettingsConfig", onRenderSettingsConfig);
   scheduler.registerHooks();
 
-  // Gaps start and end without a sidebar render (QUIET_UPDATE), so patch the rows on every client instead.
+  // Gaps start and end without a sidebar render (quietUpdate), so patch the rows on every client instead.
   const touchesResting = change => foundry.utils.hasProperty(change ?? {}, flagPath("resting"));
   Hooks.on("updatePlaylistSound", (sound, changed) => {
     if ( touchesResting(changed) ) ui.playlists?.refreshSounds?.();

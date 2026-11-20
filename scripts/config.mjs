@@ -57,8 +57,11 @@ export const FREQUENCY_OPTIONS = Object.keys(FREQUENCIES).map(value => ({value, 
  * each playlist or sound update, rebuilding every playlist and sound row. A gap toggles only our `resting` flag (the
  * sound stays `playing`), so nothing core draws changes: skip that render, and RandomizerDirectory#refreshSounds
  * patches the rows instead. Without this, every play and every end of a randomized sound hitched the UI.
+ *
+ * A fresh object each call: core fills in defaults on the operation object it is given (parent, pack, ...),
+ * so a shared or frozen object would throw and the update would never be sent.
  */
-export const QUIET_UPDATE = Object.freeze({render: false});
+export const quietUpdate = () => ({render: false});
 
 /** The dotted path of one of this module's flags, for use in update data and form field names. */
 export const flagPath = key => `flags.${MODULE_ID}.${key}`;

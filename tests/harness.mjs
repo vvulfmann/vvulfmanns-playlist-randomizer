@@ -253,6 +253,9 @@ export const updates = {
   reset() { this.sent = 0; this.rendered = 0; }
 };
 function recordUpdate(options) {
+  // Core writes to the operation object it is handed (Document#update sets parent and pack), so a frozen one throws.
+  options.diff ??= true;
+  options.recursive ??= true;
   updates.sent++;
   if ( options.render !== false ) updates.rendered++;
 }

@@ -45,7 +45,7 @@ export const RandomizerDirectory = Base => class RandomizerDirectory extends Bas
 
   /**
    * Bring the rendered rows in line with each sound's gap state, without re-rendering. Called after the quiet
-   * updates that start and end a gap (see QUIET_UPDATE), which core doesn't re-render for.
+   * updates that start and end a gap (see quietUpdate), which core doesn't re-render for.
    */
   refreshSounds() {
     if ( !this.element ) return;
