@@ -11,7 +11,7 @@
   ],
   "compatibility": {
     "minimum": "14",
-    "verified": "14.369"
+    "verified": "14.370"
   },
   "esmodules": [
     "scripts/main.js"
@@ -31,5 +31,6 @@
   "download": "https://github.com/vvulfmann/vvulfmanns-playlist-randomizer/releases/latest/download/module.zip",
   "license": "LICENSE",
   "readme": "README.md",
+  "changelog": "https://github.com/vvulfmann/vvulfmanns-playlist-randomizer/blob/main/CHANGELOG.md",
   "bugs": "https://github.com/vvulfmann/vvulfmanns-playlist-randomizer/issues"
 }

@@ -24,8 +24,23 @@ jobs:
           jq --arg v "$VERSION" --arg d "$DOWNLOAD" '.version = $v | .download = $d' module.json > module.tmp && mv module.tmp module.json
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
+      # The release notes are this version's section of CHANGELOG.md ("## 0.2.4"; a pre-release like
+      # v0.2.4-beta.1 uses the 0.2.4 section). A full release with no section fails here, so it can't ship without notes.
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          BASE="${VERSION%%-*}"
+          awk -v v="$BASE" '$0 == "## " v { on = 1; next } on && /^## / { exit } on' CHANGELOG.md > notes.md
+          if [ -z "$(tr -d '[:space:]' < notes.md)" ]; then
+            if [[ "$VERSION" == *-* ]]; then
+              echo "No CHANGELOG.md section for $BASE yet; this pre-release gets generated notes only."
+            else
+              echo "::error::CHANGELOG.md has no '## $BASE' section. Add release notes before tagging v$VERSION."
+              exit 1
+            fi
+          fi
+
       - name: Build module.zip
-        run: zip -r module.zip module.json scripts styles languages LICENSE README.md
+        run: zip -r module.zip module.json scripts styles languages LICENSE README.md CHANGELOG.md
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
@@ -33,6 +48,8 @@ jobs:
           files: |
             module.json
             module.zip
+          # The changelog section comes first, then GitHub's list of merged PRs and the compare link.
+          body_path: notes.md
           generate_release_notes: true
           # Tags with a suffix (v0.1.0-beta.1) become pre-releases, which don't replace "latest".
           prerelease: ${{ contains(github.ref_name, '-') }}
